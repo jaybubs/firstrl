@@ -30,8 +30,10 @@ class Action:
         """
         raise NotImplementedError()
 
+
 class PickupAction(Action):
     """Pickup an item and add it to the inventory if there's room"""
+
     def __init__(self, entity: Actor):
         super().__init__(entity)
 
@@ -53,17 +55,16 @@ class PickupAction(Action):
 
         raise exceptions.Impossible("There is nothing here to pickup")
 
+
 class ItemAction(Action):
-    def __init__(self, 
-            entity: Actor,
-            item: Item,
-            target_xy: Optional[Tuple[int, int]] = None
-            ):
+    def __init__(
+        self, entity: Actor, item: Item, target_xy: Optional[Tuple[int, int]] = None
+    ):
         super().__init__(entity)
         self.item = item
         if not target_xy:
             target_xy = entity.x, entity.y
-        self.target_xy =target_xy
+        self.target_xy = target_xy
 
     @property
     def target_actor(self) -> Optional[Actor]:
@@ -72,15 +73,46 @@ class ItemAction(Action):
 
     def perform(self) -> None:
         """invoke the items ability, this action will be given to provide context"""
-        self.item.consumable.activate(self)
+        if self.item.consumable:
+            self.item.consumable.activate(self)
+
 
 class DropItem(ItemAction):
     def perform(self) -> None:
+        if self.entity.equipment.item_is_equipped(self.item):
+            self.entity.equipment.toggle_equip(self.item)
         self.entity.inventory.drop(self.item)
+
+
+class EquipAction(Action):
+    def __init__(self, entity: Actor, item: Item):
+        super().__init__(entity)
+
+        self.item = item
+
+    def perform(self) -> None:
+        self.entity.equipment.toggle_equip(self.item)
+
 
 class WaitAction(Action):
     def perform(self) -> None:
         pass
+
+
+class TakeStairsAction(Action):
+    def perform(self) -> None:
+        """
+        take the stairs if present
+        """
+
+        if (self.entity.x, self.entity.y) == self.engine.game_map.downstairs_location:
+            self.engine.game_world.generate_floor()
+            self.engine.message_log.add_message(
+                "you descend the staircase", color.descend
+            )
+        else:
+            raise exceptions.Impossible("there are no stairs here")
+
 
 class ActionWithDirection(Action):
     def __init__(
@@ -133,12 +165,12 @@ class MeleeAction(ActionWithDirection):
 
         if damage > 0:
             self.engine.message_log.add_message(
-                    f"{attack_desc} for {damage} hit points", attack_color
-                    )
+                f"{attack_desc} for {damage} hit points", attack_color
+            )
             target.fighter.hp -= damage
         else:
             self.engine.message_log.add_message(
-            f"{attack_desc} but does no damage", attack_color
+                f"{attack_desc} but does no damage", attack_color
             )
 
 

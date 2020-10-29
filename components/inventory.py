@@ -5,6 +5,7 @@ from components.base_component import BaseComponent
 if TYPE_CHECKING:
     from entity import Actor, Item
 
+
 class Inventory(BaseComponent):
     parent: Actor
 
